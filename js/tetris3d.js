@@ -1,16 +1,15 @@
 //tetris3d.js
 
 // TODO: 
-// 		score/lives in keepScore()
-//		menu/directions
+//		improve menu/directions
 //		add pile check to collision()
-//		fix window resize 
-//		clean up eventListeners -- moveTetromino()
+// 		pause graphic
 
-// 		optional shadow -- highlightFootprint()
+// 		maybe.. 
+//		shadow -- highlightFootprint()
 //		3D pieces
 
-
+ 
 /* 
 	WATCH OUT: pile indexing is weird... pile[y][x][z]			
 */
@@ -18,16 +17,16 @@
 window.addEventListener('keydown', event => {
 
 	switch(event.key){
-		case "z":
+		case "a":
 			rotateTetromino(new THREE.Vector3(1,0,0));
 			break;
-		case "x":
+		case "s":
 			rotateTetromino(new THREE.Vector3(0,1,0));
 			break;
-		case ("c" || "C"):
+		case ("d"):
 			rotateTetromino(new THREE.Vector3(0,0,1));
 			break;
-		case "v":
+		case "f":
 			pause = !pause;
 			break;
 		case "Enter":
@@ -35,51 +34,32 @@ window.addEventListener('keydown', event => {
 			break;
 
 		case "ArrowUp":  
-			if(!pause){
-				activePiece.position.z -= 1;
-				renderer.render(scene, camera);
-				correction = collision();
-				if(collision()){
-					activePiece.position.z += correction.z;
-					renderer.render(scene, camera);
-				}			
-			}  							
+			moveTetromino([0,0,-1]);				
 			break;
 		case "ArrowDown": 
-			if(!pause){
-				activePiece.position.z += 1;
-				renderer.render(scene, camera);
-				correction = collision();
-				if(correction !== null){			
-					activePiece.position.z += correction.z;
-					renderer.render(scene, camera);
-				} 
-			}
+			moveTetromino([0,0,1]);
 			break;
 		case "ArrowLeft":	
-			if(!pause){
-				activePiece.position.x -= 1;
-				renderer.render(scene, camera);
-				correction = collision()
-				if(correction !== null){
-					activePiece.position.x += correction.x;
-					renderer.render(scene, camera);
-				}
-			}					
+			moveTetromino([-1,0,0]);	
 			break;
 		case "ArrowRight":			
-			if(!pause){
-							activePiece.position.x += 1; 			
-				renderer.render(scene, camera);	
-				correction = collision()		
-				if(correction !== null){
-					activePiece.position.x += correction.x;	
-					renderer.render(scene, camera);
-				}
-			}			
+			moveTetromino([1,0,0]);	
 			break;
 	}
 });
+
+window.addEventListener('resize', 
+	function(){
+		gameWidth = window.innerWidth*.75;
+		gameHeight = window.innerHeight;
+
+		renderer.setSize(gameWidth, gameHeight);
+		camera.aspect = gameWidth/gameHeight;
+		camera.updateProjectionMatrix();
+
+}, false);
+
+
 
 let init = function init(){
 	let lightAmb = new THREE.AmbientLight({color:0x404040, intensity:0.1});
@@ -114,8 +94,20 @@ let rotateTetromino = function rotateTetromino(axis){
 }
 
 
-let moveTetromino = function moveTetromino(){
-
+let moveTetromino = function moveTetromino(axis){	// [x,y,z]
+	if(!pause){
+		activePiece.position.x += axis[0];
+		activePiece.position.y += axis[1];
+		activePiece.position.z += axis[2];
+		renderer.render(scene, camera);
+		correction = collision();
+		if(collision()){
+			activePiece.position.x += correction.x;
+			activePiece.position.y += correction.y;
+			activePiece.position.z += correction.z;
+			renderer.render(scene, camera);
+		}			
+	}  				
 }
 
 
@@ -164,9 +156,9 @@ let getShape = function getShape(type){         // [x, y, z]
               color: '#c6ecc6'};
   } else if(type === 2){	// L
       return { block: [[0,0,0],
-              		[0,1,0],
-              		[0,2,0],
-              		[1,0,0]],
+              	[0,1,0],
+              	[0,2,0],
+              	[1,0,0]],
               	color: '#8cd98c'};
   } else if (type === 3){	// O
       return {block:[[0,0,0],
@@ -255,7 +247,7 @@ let createFloor = function createFloor(){
 	}
 }
 
-function clearLayer(){
+let clearLayer = function clearLayer(){
 	let full = [];
 	let isfull = true;
 	
@@ -277,7 +269,9 @@ function clearLayer(){
 			full.push(i);
 		}
 	}
-
+	score += full.length * 100;
+	scoreElement.innerText = "SCORE: " + score;
+	// remove and shift everything down
 	for(let i = 0; i < full.length; i++){
 		for(let j = 0; j < xmax; j++){
 			for(let k = 0; k < zmax; k++){
@@ -327,25 +321,96 @@ let decrementY = function decrementY(){
 	}
 }
 
-let highLightFootprint = function highlightFootprint(){
+let animate = function animate(time = 0){
+	const deltaTime = time - timePrev;
+	timePrev = time;
+
+	dropCounter += deltaTime;
+	if(dropCounter > dropInterval){
+		decrementY();
+		dropCounter = 0;		
+	}
+
+	requestAnimationFrame(animate);
+	renderer.render(scene, camera);
+
+}
+
+let highlightFootprint = function highlightFootprint(){
 	// cast ray in -y direction and highlight the face that it hits
 }
 
-// start building things here
-let scene = new THREE.Scene();
-let scene2 = new THREE.Scene();
-let camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
-
-document.body.appendChild(renderer.domElement);
-renderer.setSize(window.innerWidth,window.innerHeight);
-
+// start building things
+let score = 0;
 let pause = false;
 const xmax = 10;
 const ymax = 20;
 const zmax = 10;
 const maxAzmiuth = 0.8;
 const minAzimuth = -0.8;
+let gameWidth = 100;
+let gameHeight = 100;
+
+
+/* ************* LAYOUT ************* */
+/*
+ __ __ __ __ __ __ __ __ __ _ 
+|WRAPPER 				     |
+|  __ __ __ __	  ___ __ __  |
+| |GAME		  |  |SIDE     | |
+| |			  |	 |	__ __  | |
+| |			  |  | |SCORE| | |
+| |      	  |  | |	 | | |
+| |			  |  | |__ __| | |
+| |			  |  |  __ __  | | 
+| |			  |  | |HELP | | |
+| |			  |  | |	 | | |
+| |			  |  | |	 | | |
+| |           |	 | |__ __| | |
+| |__ __ __ __|	 |___ __ __| |
+|__ __ __ __ __ __ __ __ __ _|
+
+*/
+
+
+let wrapperElement = document.createElement("div");
+wrapperElement.className = "wrapper";
+document.body.appendChild(wrapperElement);
+
+
+let gameElement = document.createElement("div");
+gameElement.className = "game";
+wrapperElement.appendChild(gameElement);
+
+let sideElement = document.createElement("div");
+sideElement.className = "side";
+wrapperElement.appendChild(sideElement);
+
+let scoreElement = document.createElement("div"); // want to put this in the score div
+scoreElement.className = "score";
+let scoreText = document.createTextNode("");
+scoreElement.appendChild(scoreText);
+sideElement.appendChild(scoreElement);	// maybe it happens here.. ?
+scoreElement.innerText = "SCORE: " + score;
+
+let helpElement = document.createElement("div");
+helpElement.className = "help";
+let helpText = document.createTextNode("CONTROLS");
+let helpBody = document.createElement("p")
+helpBody.innerText = "ROTATE:\n a: x axis \n s: y axis \n d: z axis \n\n MOVE: \n arrow keys \n\n \n f: pause ";
+helpElement.appendChild(helpText);
+sideElement.appendChild(helpElement);
+helpElement.appendChild(helpBody);
+
+//document.body.appendChild(renderer.domElement); // want to put this in the game div
+
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(45, window.innerWidth*.75/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+gameElement.appendChild(renderer.domElement);
+
+renderer.setSize(window.innerWidth*.75,gameElement.clientHeight); // want to set this to the size of the game div
+
 
 
 /* ************* GAME ************* */
@@ -364,7 +429,7 @@ let playField = new THREE.Mesh(new THREE.BoxBufferGeometry(xmax,2.5,zmax), new T
 
 
 let pile = createPlayfield(xmax, ymax+5, zmax);  // pile[y][x][z]
-createFloor()
+createFloor();
 let activePiece;
 activePiece = new spawn();
 scene.add(activePiece);
@@ -372,23 +437,5 @@ scene.add(activePiece);
 let dropCounter = 0;
 let dropInterval = 1000;
 let timePrev = 0;
-
-
-
-function animate(time = 0){
-	const deltaTime = time - timePrev;
-	timePrev = time;
-
-	dropCounter += deltaTime;
-	if(dropCounter > dropInterval){
-		decrementY();
-		dropCounter = 0;		
-	}
-
-	requestAnimationFrame(animate);
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.render(scene, camera);
-
-}
 
 animate();

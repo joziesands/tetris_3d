@@ -3,7 +3,6 @@
 // TODO: 
 //		improve menu/directions
 //		add pile check to collision()
-// 		pause graphic
 
 // 		maybe.. 
 //		shadow -- highlightFootprint()
@@ -28,6 +27,15 @@ window.addEventListener('keydown', event => {
 			break;
 		case "f":
 			pause = !pause;
+			if(pause){
+				modalText.innerText = "PAUSE";
+				modalElement.style.display = "block";
+				controls.enabled = false;
+			} else {
+				modalElement.style.display = "none";
+				controls.enabled = true;
+
+			}
 			break;
 		case "Enter":
 			decrementY();
@@ -61,6 +69,8 @@ window.addEventListener('resize',
 
 
 
+
+
 let init = function init(){
 	let lightAmb = new THREE.AmbientLight({color:0x404040, intensity:0.1});
 	let lightDirAbv = new THREE.DirectionalLight(0xffffff,0.5);
@@ -69,8 +79,8 @@ let init = function init(){
 	scene.add(lightAmb);
 	scene.add(lightDirAbv);
 	scene.add(lightDirKey);
-
-	let controls = new THREE.OrbitControls(camera);
+	
+	controls = new THREE.OrbitControls(camera)
 	controls.enablePan = false;
 	controls.maxAzimuthAngle = maxAzmiuth;
 	controls.minAzimuthAngle = minAzimuth;
@@ -201,23 +211,60 @@ let spawn = function spawn(){
 		let cube = new THREE.Mesh(geometry, material);
 		cube.position.set(this.shape.block[i][0],this.shape.block[i][1],this.shape.block[i][2]);
 		tetromino.add(cube);
-		tetromino.position.set(Math.round(xmax/2),ymax,Math.round(zmax/2));
+		tetromino.position.set(Math.round(xmax/2),ymax-3,Math.round(zmax/2));
 		
 	}	
 	return tetromino;
 }
 
+playerLose = function playerLose(){
+	//console.log("you died.");
+
+	for(let layersIndex = 0; layersIndex < ymax; layersIndex++){
+		for(let xIndex = 0; xIndex < xmax; xIndex++){
+			for(let zIndex = 0; zIndex < zmax; zIndex++){
+				scene.remove(scene.getObjectById(pile[layersIndex][xIndex][zIndex].sceneId));
+				
+			}
+		}
+	}
+
+	pile = createPlayfield(xmax, ymax+5, zmax);
+	createFloor();
+	modalText.innerText = "YOU LOST";
+	modalButton.innerText = "CLOSE";
+	modalElement.style.display = "block";
+	pause = true;
+}
+
 let merge = function merge(){
 	let ap = new THREE.Vector3();
+	let death = 0;
 	for(let i = 0; i < activePiece.children.length; i++){
 		activePiece.children[i].getWorldPosition(ap);
-		pile[Math.round(ap.y)][Math.round(ap.x)][Math.round(ap.z)] = { sceneId: activePiece.id, groupId:activePiece.children[i].id};
+		if(ap.y > ymax-4){
+			death = 1;
+			break;
+		}
 		//console.log('merge: update pile');
+	}
+
+	if(death === 0){
+		for(let i = 0; i < activePiece.children.length; i++){
+			activePiece.children[i].getWorldPosition(ap);
+			pile[Math.round(ap.y)][Math.round(ap.x)][Math.round(ap.z)] = { sceneId: activePiece.id, groupId:activePiece.children[i].id};
+			//console.log('merge: update pile');
+		}
+	} else {
+		scene.remove(activePiece);
+		playerLose();
 	}
 	clearLayer();
 	activePiece = new spawn();
 	scene.add(activePiece);
 }
+
+
 
 let createPlayfield = function createPlayfield(w,h,d){		
 	let playfield = [];
@@ -272,15 +319,17 @@ let clearLayer = function clearLayer(){
 	score += full.length * 100;
 	scoreElement.innerText = "SCORE: " + score;
 	// remove and shift everything down
-	for(let i = 0; i < full.length; i++){
-		for(let j = 0; j < xmax; j++){
-			for(let k = 0; k < zmax; k++){
+	let layersDeleted = 0;
+	for(let layerIndex = 0; layerIndex < full.length; layerIndex++){
+		for(let xIndex = 0; xIndex < xmax; xIndex++){
+			for(let zIndex = 0; zIndex < zmax; zIndex++){
 				//	
-				scene.getObjectById(pile[full[i]][j][k].sceneId).remove(scene.getObjectById(pile[full[i]][j][k].sceneId).getObjectById(pile[full[i]][j][k].groupId))
-				renderer.render(scene, camera);
-				for(let m = 1; m < ymax-i; m++){
-					if(pile[full[i]+m][j][k].sceneId > 0){
-						let cubeMesh = scene.getObjectById(pile[full[i]+m][j][k].sceneId).getObjectById(pile[full[i] + m][j][k].groupId);
+				
+				scene.getObjectById(pile[full[layerIndex-layersDeleted]][xIndex][zIndex].sceneId).remove(scene.getObjectById(pile[full[layerIndex-layersDeleted]][xIndex][zIndex].sceneId).getObjectById(pile[full[layerIndex-layersDeleted]][xIndex][zIndex].groupId))
+				
+				for(let m = 1; m < ymax-layerIndex-layersDeleted; m++){
+					if(pile[full[layerIndex-layersDeleted]+m][xIndex][zIndex].sceneId > 0){
+						let cubeMesh = scene.getObjectById(pile[full[layerIndex-layersDeleted]+m][xIndex][zIndex].sceneId).getObjectById(pile[full[layerIndex-layersDeleted] + m][xIndex][zIndex].groupId);
 						let sceneOrigin = scene.getWorldPosition();
 						let cubeInWorld = cubeMesh.localToWorld(sceneOrigin);
 						cubeInWorld.y--;
@@ -291,14 +340,14 @@ let clearLayer = function clearLayer(){
 						cubeMesh.position.y += deltaPos.y;
 						cubeMesh.position.z += deltaPos.z;
 					}
-					pile[full[i]+m-1][j][k].sceneId = pile[full[i]+m][j][k].sceneId;
-					pile[full[i]+m-1][j][k].groupId = pile[full[i]+m][j][k].groupId;
+					pile[full[layerIndex-layersDeleted]+m-1][xIndex][zIndex].sceneId = pile[full[layerIndex-layersDeleted]+m][xIndex][zIndex].sceneId;
+					pile[full[layerIndex-layersDeleted]+m-1][xIndex][zIndex].groupId = pile[full[layerIndex-layersDeleted]+m][xIndex][zIndex].groupId;
 				}
-				
-
 			}
-		}
 
+		}
+		layersDeleted++;
+		console.log(layersDeleted)
 	}
 }
 
@@ -344,7 +393,7 @@ let highlightFootprint = function highlightFootprint(){
 let score = 0;
 let pause = false;
 const xmax = 10;
-const ymax = 20;
+const ymax = 24;
 const zmax = 10;
 const maxAzmiuth = 0.8;
 const minAzimuth = -0.8;
@@ -386,27 +435,54 @@ let sideElement = document.createElement("div");
 sideElement.className = "side";
 wrapperElement.appendChild(sideElement);
 
-let scoreElement = document.createElement("div"); // want to put this in the score div
+let scoreElement = document.createElement("div"); 
 scoreElement.className = "score";
 let scoreText = document.createTextNode("");
 scoreElement.appendChild(scoreText);
-sideElement.appendChild(scoreElement);	// maybe it happens here.. ?
+sideElement.appendChild(scoreElement);
 scoreElement.innerText = "SCORE: " + score;
 
 let helpElement = document.createElement("div");
 helpElement.className = "help";
 let helpText = document.createTextNode("CONTROLS");
 let helpBody = document.createElement("p")
-helpBody.innerText = "ROTATE:\n a: x axis \n s: y axis \n d: z axis \n\n MOVE: \n arrow keys \n\n \n f: pause ";
+helpBody.innerText = " f: pause \n return: fall faster \n\n ROTATE: \n a: about x-axis \n s: about y-axis \n d: about z-axis \n\nMOVE: \n arrow keys \n\n VIEW: \n pan: click and drag mouse \n zoom: scroll up/down";
 helpElement.appendChild(helpText);
 sideElement.appendChild(helpElement);
 helpElement.appendChild(helpBody);
 
-//document.body.appendChild(renderer.domElement); // want to put this in the game div
+let coordFrame = document.createElement("div");
+let coordImg = document.createElement("img");
+coordImg.src = "http://www.codinglabs.net/public/contents/article_world_view_projection_matrix/images/coords_rh.png"
+coordImg.width = 100;
+coordFrame.className = "info";
+coordFrame.appendChild(coordImg);
+helpElement.appendChild(coordFrame);
+
+// pop up graphics 
+
+let modalElement = document.createElement("div");
+modalElement.className = "modal";
+wrapperElement.appendChild(modalElement);
+
+
+let modalText = document.createElement("p");
+let modalButton = document.createElement("span");
+modalElement.appendChild(modalText);
+modalElement.appendChild(modalButton);
+
+modalButton.onclick = function(){
+	modalElement.style.display = "none";
+	pause = false;
+}
+
+// THREE.js scene setup
 
 let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(45, window.innerWidth*.75/window.innerHeight, 0.1, 1000);
 let renderer = new THREE.WebGLRenderer();
+let controls;
+
 gameElement.appendChild(renderer.domElement);
 
 renderer.setSize(window.innerWidth*.75,gameElement.clientHeight); // want to set this to the size of the game div

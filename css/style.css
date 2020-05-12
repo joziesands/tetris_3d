@@ -1,5 +1,5 @@
 body {
-	background-color: #000000;
+	background-color: #fff;
     overflow:hidden;
 }
 
@@ -20,7 +20,7 @@ p{
 
 .game{
     grid-area: g;
-    background-color: #000;    
+    background-color: #fff;    
     line-height: 0px;
 }
 
@@ -51,12 +51,12 @@ p{
     grid-area: h;
     display: grid;
     padding: 10px;
-    background-color: #AAA;
+    background-color: #fff;
     font-family: inherit;
 }
 
 .info{
-    background-color: #AAA;
+    background-color: #fff;
     width:100;
     padding: 10;
 

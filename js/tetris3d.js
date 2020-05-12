@@ -84,7 +84,7 @@ let init = function init(){
 	controls.enablePan = false;
 	controls.maxAzimuthAngle = maxAzmiuth;
 	controls.minAzimuthAngle = minAzimuth;
-	controls.target.set(xmax/2,ymax/3,0);
+	controls.target.set(xmax/2,ymax/5,0);
 	camera.position.set(xmax/2,40,35);
 	controls.update();
 }
@@ -157,43 +157,45 @@ let getShape = function getShape(type){         // [x, y, z]
               [0,1,0],
               [0,2,0],
               [0,-1,0]],
-              color: '#ffffff'};
+              color: '#002200'};
   } else if(type === 1){	// J
-      return { block: [[-1,0,0],
-              [0,0,0],
-              [0,1,0],
-              [0,2,0]],
-              color: '#c6ecc6'};
+	  return { block: [[-1,0,0],
+				[0,0,-1],
+            	[0,0,0],
+            	[0,1,0],
+            	[0,2,0]],
+              color: '#003906'};
   } else if(type === 2){	// L
       return { block: [[0,0,0],
               	[0,1,0],
               	[0,2,0],
               	[1,0,0]],
-              	color: '#8cd98c'};
+              	color: '#00521e'};
   } else if (type === 3){	// O
       return {block:[[0,0,0],
               [0,1,0],
               [1,0,0],
               [1,1,0]],
-              color: '#53c653'};  
+              color: '#006c35'};  
   } else if(type === 4){	// S
       return {block:[[0,0,0],
               [0,1,0],
               [1,1,0],
               [-1,0,0]],
-              color: '#339933'};
+              color: '#0b874e'};
   } else if(type === 5){	// T
        return {block: [[0,0,0],
                [1,0,0],
                [0,1,0],
                [-1,0,0]],
-               color: '#267326'};
+               color: '#37a266'};
   } else if(type === 6){	//Z
       return {block:[[0,0,0],
-              [1,0,0],
-              [0,1,0],
-              [-1,1,0]],
-              color: '#194d19'};
+              		[1,0,0],
+					[0,1,0],
+					[0,1,1],
+              		[-1,1,1]],
+              		color: '#55bd7f'};
   }
 }
 
@@ -480,13 +482,13 @@ modalButton.onclick = function(){
 
 let scene = new THREE.Scene();
 let camera = new THREE.PerspectiveCamera(45, window.innerWidth*.75/window.innerHeight, 0.1, 1000);
-let renderer = new THREE.WebGLRenderer();
+let renderer = new THREE.WebGLRenderer({antialias: true});
 let controls;
 
 gameElement.appendChild(renderer.domElement);
 
 renderer.setSize(window.innerWidth*.75,gameElement.clientHeight); // want to set this to the size of the game div
-
+renderer.setClearColor(0xffffff,1);
 
 
 /* ************* GAME ************* */
@@ -495,12 +497,12 @@ renderer.setSize(window.innerWidth*.75,gameElement.clientHeight); // want to set
 init();
 
 // build playField standard is 10x10 base w/ 20||24 height
-let playField = new THREE.Mesh(new THREE.BoxBufferGeometry(xmax,2.5,zmax), new THREE.MeshStandardMaterial({
-		color: 0xffffff,
-		opacity:0.15,
+let playField = new THREE.Mesh(new THREE.BoxBufferGeometry(xmax,0.5,zmax), new THREE.MeshStandardMaterial({
+		color: 0x000,
+		opacity:0.5,
 		transparent:true,
 	}));
-	playField.position.set(Math.round(xmax/2)-.5,-.75,Math.round(zmax/2)-.5);
+	playField.position.set(Math.round(xmax/2)-.5,0.25,Math.round(zmax/2)-.5);
 	scene.add(playField);
 
 

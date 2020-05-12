@@ -159,10 +159,11 @@ let getShape = function getShape(type){         // [x, y, z]
               [0,-1,0]],
               color: '#002200'};
   } else if(type === 1){	// J
-      return { block: [[-1,0,0],
-              [0,0,0],
-              [0,1,0],
-              [0,2,0]],
+	  return { block: [[-1,0,0],
+				[0,0,-1],
+            	[0,0,0],
+            	[0,1,0],
+            	[0,2,0]],
               color: '#003906'};
   } else if(type === 2){	// L
       return { block: [[0,0,0],
